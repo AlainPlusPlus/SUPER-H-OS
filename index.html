@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SUPER-H OS v1.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/fengari-web@0.1.4/dist/fengari-web.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #008080;
+            --bg-pattern: #00a8a8;
+            --win-bg: #ffe4e1; /* Misty Rose */
+            --win-header: #ffb6c1; /* Light Pink */
+            --win-header-focus: #ff69b4; /* Hot Pink */
+            --term-bg: #1a1a1a;
+            --term-text: #00ff00;
+            --font-main: 'VT323', monospace;
+            --shadow-hard: 4px 4px 0px #000;
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            background-image: 
+                linear-gradient(45deg, var(--bg-pattern) 25%, transparent 25%, transparent 75%, var(--bg-pattern) 75%, var(--bg-pattern)),
+                linear-gradient(45deg, var(--bg-pattern) 25%, transparent 25%, transparent 75%, var(--bg-pattern) 75%, var(--bg-pattern));
+            background-size: 4px 4px;
+            background-position: 0 0, 2px 2px;
+            font-family: var(--font-main);
+            color: #333;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Scanline Effect */
+        .scanlines {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Boot Screen */
+        #boot-screen {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: #000; color: #fff;
+            z-index: 10000;
+            padding: 20px;
+            font-size: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        /* Desktop Icons */
+        .desktop-icons {
+            position: absolute;
+            top: 20px; left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 1;
+        }
+
+        .icon {
+            width: 70px;
+            text-align: center;
+            cursor: pointer;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+        }
+        
+        .icon:active { transform: translate(2px, 2px); }
+        
+        .icon-img {
+            width: 48px; height: 48px;
+            background: #fff;
+            border: 2px solid #000;
+            margin: 0 auto 5px;
+            image-rendering: pixelated;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+        }
+        
+        /* Icons Colors */
+        .icon.folder .icon-img { background: #ffcc00; color: #000; }
+        .icon.file .icon-img { background: #fff; color: #000; }
+        .icon.term .icon-img { background: #333; color: #0f0; }
+        .icon.paint .icon-img { background: #ff69b4; color: #fff; }
+
+        /* Taskbar */
+        #taskbar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 35px;
+            background: #fff;
+            border-top: 2px solid #000;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 9000;
+            box-shadow: 0 -4px 0 rgba(0,0,0,0.2);
+        }
+
+        .start-btn {
+            background: #ff69b4;
+            color: white;
+            border: 2px solid #000;
+            padding: 2px 10px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 #000;
+            margin-right: 10px;
+        }
+        
+        .start-btn:active { box-shadow: inset 2px 2px 0 #000; transform: translate(2px, 2px); }
+
+        .clock { margin-left: auto; font-size: 20px; font-weight: bold; }
+
+        /* Windows */
+        .window {
+            position: absolute;
+            background: var(--win-bg);
+            border: 2px solid #000;
+            box-shadow: var(--shadow-hard);
+            display: flex;
+            flex-direction: column;
+            resize: both;
+            overflow: hidden;
+            min-width: 200px; min-height: 150px;
+        }
+
+        .win-header {
+            background: var(--win-header);
+            border-bottom: 2px solid #000;
+            padding: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+        
+        .window.active .win-header { background: var(--win-header-focus); color: white; }
+
+        .win-title { font-weight: bold; padding-left: 5px; }
+        
+        .win-controls button {
+            width: 20px; height: 20px;
+            border: 1px solid #000;
+            background: #fff;
+            cursor: pointer;
+            font-family: var(--font-main);
+            line-height: 1;
+        }
+        
+        .win-controls .close-btn { background: #ff4444; color: white; }
+
+        .win-content {
+            flex: 1;
+            padding: 5px;
+            overflow: auto;
+            position: relative;
+        }
+
+        /* App Specific Styles */
+        
+        /* Terminal */
+        .app-terminal { background: var(--term-bg); color: var(--term-text); font-family: monospace; padding: 10px; height: 100%; overflow-y: auto; }
+        .cmd-input { background: transparent; border: none; color: inherit; width: 80%; outline: none; font-family: inherit; font-size: inherit; }
+
+        /* File Manager */
+        .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; }
+        .fm-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-align: center; }
+        .fm-item:hover { background: rgba(0,0,0,0.1); }
+        .fm-icon { font-size: 24px; margin-bottom: 2px; }
+
+        /* Paint */
+        .paint-ui { display: flex; flex-direction: column; height: 100%; }
+        .paint-toolbar { display: flex; gap: 5px; padding: 5px; border-bottom: 1px solid #000; background: #eee; }
+        .color-swatch { width: 20px; height: 20px; border: 1px solid #000; cursor: pointer; }
+        .canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #888; overflow: auto; }
+        canvas { background: #fff; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); image-rendering: pixelated; }
+
+        /* Code Editor */
+        .code-ui { display: flex; flex-direction: column; height: 100%; }
+        .code-toolbar { padding: 5px; border-bottom: 1px solid #000; background: #eee; display: flex; gap: 10px; }
+        textarea.code-area { 
+            flex: 1; background: #1e1e1e; color: #d4d4d4; 
+            border: none; padding: 10px; resize: none; outline: none; 
+            font-family: monospace; font-size: 14px; 
+        }
+        .console-output { height: 100px; background: #000; color: #fff; padding: 5px; overflow-y: auto; border-top: 2px solid #555; font-family: monospace; font-size: 12px; }
+
+    </style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+
+<div id="boot-screen">
+    <div>SUPER-H BIOS v1.02</div>
+    <div>Checking Memory... 640KB OK</div>
+    <div>Loading Drivers... OK</div>
+    <div>Mounting Virtual Drive... OK</div>
+    <br>
+    <div id="boot-log"></div>
+</div>
+
+<div class="desktop-icons" id="desktop">
+    </div>
+
+<div id="taskbar">
+    <button class="start-btn" onclick="OS.toggleStartMenu()">♥ SHUTDOWN</button>
+    <div id="task-list" style="display:flex; gap:5px; margin-left: 10px;"></div>
+    <div class="clock" id="clock">12:00 PM</div>
+</div>
+
+<template id="tpl-window">
+    <div class="window">
+        <div class="win-header">
+            <span class="win-title">Title</span>
+            <div class="win-controls">
+                <button class="min-btn">_</button>
+                <button class="max-btn">□</button>
+                <button class="close-btn">X</button>
+            </div>
+        </div>
+        <div class="win-content"></div>
+    </div>
+</template>
+
+<script>
+/**
+ * CORE OS LOGIC
+ */
+const OS = {
+    fs: null,
+    windows: [],
+    zIndex: 100,
+    clipboard: null,
+
+    init() {
+        this.fs = new FileSystem();
+        this.setupBoot();
+        this.setupClock();
+        this.initializeSettings();
+        this.renderDesktop();
+        
+        // Global Listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') { e.preventDefault(); /* Global save hook potential */ }
+        });
+    },
+
+    initializeSettings() {
+        // Initialize default settings if not already set
+        if (!localStorage.getItem('claude-haiku-4.5-enabled')) {
+            localStorage.setItem('claude-haiku-4.5-enabled', 'true');
+        }
+        this.claudeHaikuEnabled = localStorage.getItem('claude-haiku-4.5-enabled') === 'true';
+    },
+
+    setupBoot() {
+        const log = document.getElementById('boot-log');
+        const msgs = ["Initializing Graphics...", "Loading Kernel...", "Starting UI...", "Enabling Mistral AI..."];
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i >= msgs.length) {
+                clearInterval(interval);
+                setTimeout(() => document.getElementById('boot-screen').style.display = 'none', 800);
+            } else {
+                log.innerHTML += `<div>${msgs[i]}</div>`;
+                i++;
+            }
+        }, 600);
+    },
+
+    setupClock() {
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }, 1000);
+    },
+
+    createWindow(appId, title, w = 400, h = 300, contentClass = '') {
+        const tpl = document.getElementById('tpl-window');
+        const winEl = tpl.content.cloneNode(true).querySelector('.window');
+        
+        const id = 'win-' + Date.now();
+        winEl.id = id;
+        winEl.style.width = w + 'px';
+        winEl.style.height = h + 'px';
+        winEl.style.left = (50 + (this.windows.length * 20)) + 'px';
+        winEl.style.top = (50 + (this.windows.length * 20)) + 'px';
+        winEl.style.zIndex = ++this.zIndex;
+        
+        winEl.querySelector('.win-title').innerText = title;
+        if(contentClass) winEl.querySelector('.win-content').classList.add(contentClass);
+
+        // Window interaction logic
+        this.makeDraggable(winEl);
+        
+        winEl.addEventListener('mousedown', () => this.focusWindow(winEl));
+        winEl.querySelector('.close-btn').onclick = () => this.closeWindow(id);
+        winEl.querySelector('.max-btn').onclick = () => this.maximizeWindow(winEl);
+        
+        document.body.appendChild(winEl);
+        this.windows.push({ id, el: winEl, appId });
+        this.updateTaskbar();
+        
+        return winEl.querySelector('.win-content');
+    },
+
+    closeWindow(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+        this.windows = this.windows.filter(w => w.id !== id);
+        this.updateTaskbar();
+    },
+
+    focusWindow(el) {
+        el.style.zIndex = ++this.zIndex;
+        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+        el.classList.add('active');
+    },
+
+    maximizeWindow(el) {
+        if(el.style.width === '100%') {
+            el.style.width = el.dataset.ow; el.style.height = el.dataset.oh;
+            el.style.top = el.dataset.ot; el.style.left = el.dataset.ol;
+        } else {
+            el.dataset.ow = el.style.width; el.dataset.oh = el.style.height;
+            el.dataset.ot = el.style.top; el.dataset.ol = el.style.left;
+            el.style.width = '100%'; el.style.height = 'calc(100% - 40px)';
+            el.style.top = '0'; el.style.left = '0';
+        }
+    },
+
+    makeDraggable(el) {
+        const header = el.querySelector('.win-header');
+        let isDragging = false, startX, startY, initLeft, initTop;
+
+        header.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX; startY = e.clientY;
+            initLeft = el.offsetLeft; initTop = el.offsetTop;
+            this.focusWindow(el);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            el.style.left = (initLeft + e.clientX - startX) + 'px';
+            el.style.top = (initTop + e.clientY - startY) + 'px';
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+    },
+
+    renderDesktop() {
+        const container = document.getElementById('desktop');
+        container.innerHTML = '';
+        const icons = [
+            { name: "Files", icon: "💻", type: "folder", action: () => Apps.FileManager.open('/') },
+            { name: "Terminal", icon: ">_", type: "term", action: () => Apps.Terminal.open() },
+            { name: "Chat", icon: "💬", type: "term", action: () => Apps.ChatTerminal.open() },
+            { name: "Code", icon: "{}", type: "file", action: () => Apps.CodeEditor.open() },
+            { name: "Art", icon: "🎨", type: "paint", action: () => Apps.Paint.open() },
+            { name: "Text", icon: "📄", type: "file", action: () => Apps.TextEditor.open('/readme.txt') },
+            { name: "Settings", icon: "⚙", type: "file", action: () => Apps.Settings.open() },
+        ];
+
+        icons.forEach(icon => {
+            const div = document.createElement('div');
+            div.className = `icon ${icon.type}`;
+            div.innerHTML = `<div class="icon-img">${icon.icon}</div><div>${icon.name}</div>`;
+            div.onclick = icon.action;
+            container.appendChild(div);
+        });
+    },
+
+    updateTaskbar() {
+        const list = document.getElementById('task-list');
+        list.innerHTML = '';
+        this.windows.forEach(w => {
+            const btn = document.createElement('button');
+            btn.innerText = w.el.querySelector('.win-title').innerText;
+            btn.style.border = '2px solid #000';
+            btn.style.background = '#ddd';
+            btn.style.cursor = 'pointer';
+            btn.onclick = () => this.focusWindow(w.el);
+            list.appendChild(btn);
+        });
+    },
+    
+    toggleStartMenu() {
+        // Create start menu window
+        const menuWin = document.getElementById('start-menu');
+        if (menuWin) {
+            menuWin.remove();
+            return;
+        }
+
+        const menu = document.createElement('div');
+        menu.id = 'start-menu';
+        menu.style.cssText = `
+            position: fixed;
+            bottom: 40px;
+            left: 10px;
+            background: #ff69b4;
+            border: 2px solid #000;
+            box-shadow: 4px 4px 0 #000;
+            z-index: 8000;
+            min-width: 200px;
+        `;
+        
+        const menuItems = [
+            { label: 'Settings', action: () => Apps.Settings.open() },
+            { label: 'Shutdown', action: () => this.shutdown() }
+        ];
+        
+        menuItems.forEach(item => {
+            const btn = document.createElement('button');
+            btn.innerText = item.label;
+            btn.style.cssText = `
+                display: block;
+                width: 100%;
+                border: none;
+                border-bottom: 1px solid #000;
+                padding: 10px;
+                background: #ff69b4;
+                cursor: pointer;
+                text-align: left;
+                font-family: ${this.getFontFamily()};
+                font-size: 16px;
+            `;
+            btn.onmouseover = () => btn.style.background = '#ff1493';
+            btn.onmouseout = () => btn.style.background = '#ff69b4';
+            btn.onclick = () => {
+                menu.remove();
+                item.action();
+            };
+            menu.appendChild(btn);
+        });
+        
+        document.body.appendChild(menu);
+        document.addEventListener('click', (e) => {
+            if (!menu.contains(e.target) && e.target.className !== 'start-btn') {
+                menu.remove();
+            }
+        }, { once: true });
+    },
+
+    shutdown() {
+        // Close all windows
+        this.windows.forEach(w => w.el.remove());
+        this.windows = [];
+        
+        // Show shutdown screen
+        const shutdownScreen = document.createElement('div');
+        shutdownScreen.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #00ff00;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: ${this.getFontFamily()};
+            font-size: 20px;
+            text-align: center;
+            padding: 20px;
+        `;
+        
+        shutdownScreen.innerHTML = `
+            <div>SUPER-H OS v1.0</div>
+            <br>
+            <div>Shutting down...</div>
+            <br>
+            <div id="shutdown-log"></div>
+            <br>
+            <div style="margin-top: 30px; font-size: 16px;">It is now safe to turn off your computer</div>
+        `;
+        
+        document.body.appendChild(shutdownScreen);
+        
+        const log = shutdownScreen.querySelector('#shutdown-log');
+        const messages = [
+            'Closing applications...',
+            'Saving state...',
+            'Unmounting drives...',
+            'Shutting down kernel...'
+        ];
+        
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i >= messages.length) {
+                clearInterval(interval);
+            } else {
+                const div = document.createElement('div');
+                div.innerText = messages[i];
+                log.appendChild(div);
+                i++;
+            }
+        }, 500);
+    },
+
+    getFontFamily() {
+        return "'VT323', monospace";
+    }
+};
+
+/**
+ * FILE SYSTEM (LocalStorage based)
+ */
+class FileSystem {
+    constructor() {
+        this.storageKey = 'retro_os_disk';
+        this.data = JSON.parse(localStorage.getItem(this.storageKey)) || {
+            '/': { type: 'dir', children: ['home', 'readme.txt'] },
+            '/home': { type: 'dir', children: ['demos'] },
+            '/home/demos': { type: 'dir', children: ['hello.lua'] },
+            '/readme.txt': { type: 'file', content: 'Welcome to SUPER-H OS!\nEnjoy the retro vibes.' },
+            '/home/demos/hello.lua': { type: 'file', content: 'print("Hello from Lua!")\nfor i=1,5 do\n  print("Count: " .. i)\nend' }
+        };
+        this.save();
+    }
+
+    save() { localStorage.setItem(this.storageKey, JSON.stringify(this.data)); }
+
+    read(path) {
+        if (!this.data[path]) return null;
+        return this.data[path].content;
+    }
+
+    write(path, content) {
+        const parts = path.split('/');
+        const fileName = parts.pop();
+        const dir = parts.join('/') || '/';
+        
+        if (!this.data[dir]) return false; // Dir doesn't exist
+        
+        // Add to parent directory listing if new
+        if (!this.data[path] && !this.data[dir].children.includes(fileName)) {
+            this.data[dir].children.push(fileName);
+        }
+        
+        this.data[path] = { type: 'file', content: content };
+        this.save();
+        return true;
+    }
+    
+    ls(path) {
+        return this.data[path] ? this.data[path].children : null;
+    }
+}
+
+/**
+ * APPLICATIONS
+ */
+const Apps = {
+    Terminal: {
+        open() {
+            const content = OS.createWindow('term', 'Terminal.lua', 500, 300, 'app-terminal');
+            content.style.background = '#222';
+            
+            let history = [''];
+            let cwd = '/';
+
+            const output = document.createElement('div');
+            const inputLine = document.createElement('div');
+            inputLine.style.display = 'flex';
+            inputLine.innerHTML = `<span style="color:#0f0; margin-right:5px;">${cwd}></span><input type="text" class="cmd-input" autofocus>`;
+            
+            content.appendChild(output);
+            content.appendChild(inputLine);
+
+            const input = inputLine.querySelector('input');
+            const print = (text, color='#fff') => {
+                const div = document.createElement('div');
+                div.style.color = color;
+                div.innerText = text;
+                output.appendChild(div);
+                content.scrollTop = content.scrollHeight;
+            };
+            
+            print("SUPER-H Kernel v1.0. Type 'help' for commands.", '#0f0');
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const cmd = input.value.trim();
+                    print(`${cwd}> ${cmd}`, '#888');
+                    input.value = '';
+                    this.exec(cmd, print, (newCwd) => {
+                        cwd = newCwd;
+                        inputLine.querySelector('span').innerText = `${cwd}>`;
+                    });
+                }
+            });
+            
+            // Focus fix
+            content.addEventListener('click', () => input.focus());
+        },
+        
+        exec(cmdStr, print, setCwd) {
+            const args = cmdStr.split(' ');
+            const cmd = args[0];
+            
+            switch(cmd) {
+                case 'help':
+                    print("Available: ls, cat [file], echo [txt], clear, lua [code], help");
+                    break;
+                case 'clear':
+                    document.querySelector('.app-terminal > div:first-child').innerHTML = '';
+                    break;
+                case 'ls':
+                    // Mocking current directory logic simply
+                    const files = OS.fs.ls(args[1] || '/');
+                    if(files) print(files.join('  '), '#ff69b4');
+                    else print("Directory not found", 'red');
+                    break;
+                case 'cat':
+                    const content = OS.fs.read((args[1].startsWith('/') ? '' : '/') + args[1]);
+                    if(content !== null) print(content);
+                    else print("File not found", 'red');
+                    break;
+                case 'lua':
+                     try {
+                        const code = args.slice(1).join(' ');
+                        fengari.load(code)();
+                        print("Executed.", '#0f0');
+                    } catch(e) { print("Lua Error: " + e, 'red'); }
+                    break;
+                default:
+                    if(cmd) print("Command not found: " + cmd, 'red');
+            }
+        }
+    },
+
+    CodeEditor: {
+        open(filePath = null) {
+            const content = OS.createWindow('code', 'Code Editor', 600, 400, 'code-ui');
+            
+            // Layout
+            const toolbar = document.createElement('div');
+            toolbar.className = 'code-toolbar';
+            toolbar.innerHTML = `
+                <button id="btn-run">▶ Run (Lua)</button>
+                <button id="btn-save">💾 Save</button>
+                <input type="text" id="filename" value="${filePath || '/home/demos/untitled.lua'}" style="flex:1">
+            `;
+            
+            const area = document.createElement('textarea');
+            area.className = 'code-area';
+            area.spellcheck = false;
+            if(filePath) area.value = OS.fs.read(filePath) || "";
+            else area.value = '-- Write Lua code here\nprint("Hello World")';
+
+            const consoleDiv = document.createElement('div');
+            consoleDiv.className = 'console-output';
+            consoleDiv.innerText = "-- Output Console --\n";
+
+            content.appendChild(toolbar);
+            content.appendChild(area);
+            content.appendChild(consoleDiv);
+
+            // Logic
+            toolbar.querySelector('#btn-save').onclick = () => {
+                const path = toolbar.querySelector('#filename').value;
+                OS.fs.write(path, area.value);
+                consoleDiv.innerText += `\n[System] Saved to ${path}`;
+            };
+
+            toolbar.querySelector('#btn-run').onclick = () => {
+                consoleDiv.innerText = "-- Output Console --\n";
+                const code = area.value;
+                
+                // Hook Fengari print
+                const L = fengari.lauxlib.luaL_newstate();
+                fengari.lualib.luaL_openlibs(L);
+                
+                // Override Lua print function to output to our div
+                fengari.lua.lua_register(L, "print", (l) => {
+                    let n = fengari.lua.lua_gettop(l);
+                    let str = [];
+                    for(let i=1; i<=n; i++) {
+                        str.push(fengari.lua.lua_tojsstring(l, i));
+                    }
+                    consoleDiv.innerText += str.join("\t") + "\n";
+                    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                    return 0;
+                });
+
+                try {
+                    const status = fengari.lauxlib.luaL_dostring(L, fengari.to_luastring(code));
+                    if (status !== fengari.lua.LUA_OK) {
+                         const err = fengari.lua.lua_tojsstring(L, -1);
+                         consoleDiv.innerText += `\n[Error] ${err}`;
+                    }
+                } catch (e) {
+                    consoleDiv.innerText += `\n[JS Error] ${e.message}`;
+                }
+            };
+        }
+    },
+
+    Paint: {
+        open() {
+            const content = OS.createWindow('paint', 'Pixel Paint', 450, 450, 'paint-ui');
+            
+            // Toolbar
+            const toolbar = document.createElement('div');
+            toolbar.className = 'paint-toolbar';
+            const colors = ['#000000', '#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
+            let activeColor = '#000000';
+            
+            colors.forEach(c => {
+                const d = document.createElement('div');
+                d.className = 'color-swatch';
+                d.style.background = c;
+                d.onclick = () => { activeColor = c; toolbar.style.borderColor = c; };
+                toolbar.appendChild(d);
+            });
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.innerText = 'Save';
+            saveBtn.onclick = () => {
+                const name = prompt("Filename:", "art.png");
+                if(name) alert("File saved to virtual disk! (Mock)");
+            };
+            toolbar.appendChild(saveBtn);
+
+            // Canvas
+            const cont = document.createElement('div');
+            cont.className = 'canvas-container';
+            const canvas = document.createElement('canvas');
+            const size = 32; // 32x32 pixels
+            const scale = 10;
+            canvas.width = size * scale;
+            canvas.height = size * scale;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            // Grid drawing helper
+            const drawPixel = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / scale);
+                const y = Math.floor((e.clientY - rect.top) / scale);
+                ctx.fillStyle = activeColor;
+                ctx.fillRect(x * scale, y * scale, scale, scale);
+            }
+
+            let painting = false;
+            canvas.addEventListener('mousedown', (e) => { painting = true; drawPixel(e); });
+            canvas.addEventListener('mousemove', (e) => { if(painting) drawPixel(e); });
+            canvas.addEventListener('mouseup', () => painting = false);
+            canvas.addEventListener('mouseleave', () => painting = false);
+
+            cont.appendChild(canvas);
+            content.appendChild(toolbar);
+            content.appendChild(cont);
+        }
+    },
+
+    FileManager: {
+        open(path = '/') {
+            const content = OS.createWindow('files', 'File Manager', 400, 300);
+            const grid = document.createElement('div');
+            grid.className = 'file-grid';
+            
+            const files = OS.fs.ls(path);
+            
+            if(path !== '/') {
+                 const up = document.createElement('div');
+                 up.className = 'fm-item';
+                 up.innerHTML = `<div class="fm-icon">⬆️</div><div>..</div>`;
+                 up.onclick = () => { 
+                     // Simple mock up navigation
+                     content.parentNode.remove();
+                     this.open('/'); 
+                 };
+                 grid.appendChild(up);
+            }
+
+            if(files) {
+                files.forEach(f => {
+                    const fullPath = (path === '/' ? '' : path) + '/' + f;
+                    const isDir = f.indexOf('.') === -1; // Naive check
+                    const el = document.createElement('div');
+                    el.className = 'fm-item';
+                    el.innerHTML = `<div class="fm-icon">${isDir ? '📁' : '📄'}</div><div>${f}</div>`;
+                    
+                    el.onclick = () => {
+                        if(isDir) {
+                            content.parentNode.remove();
+                            this.open(fullPath);
+                        } else {
+                            if(f.endsWith('.lua')) Apps.CodeEditor.open(fullPath);
+                            else if(f.endsWith('.txt')) Apps.TextEditor.open(fullPath);
+                            else alert("Unknown file type");
+                        }
+                    };
+                    grid.appendChild(el);
+                });
+            }
+            content.appendChild(grid);
+        }
+    },
+
+    TextEditor: {
+        open(path) {
+            const content = OS.createWindow('notepad', path || 'Untitled', 400, 300);
+            const area = document.createElement('textarea');
+            area.style.width = '100%'; area.style.height = 'calc(100% - 30px)';
+            area.style.border = 'none'; area.style.resize = 'none'; area.style.padding = '5px';
+            
+            if(path) area.value = OS.fs.read(path) || "";
+
+            const btn = document.createElement('button');
+            btn.innerText = "Save";
+            btn.style.width = '100%';
+            btn.onclick = () => OS.fs.write(path, area.value);
+
+            content.appendChild(area);
+            content.appendChild(btn);
+        }
+    },
+
+    Settings: {
+        open() {
+            const content = OS.createWindow('settings', 'System Settings', 500, 400);
+            content.style.background = '#f0f0f0';
+            
+            const configKey = 'claude-haiku-4.5-enabled';
+            const isEnabled = localStorage.getItem(configKey) === 'true';
+            
+            // Settings list
+            const settingsList = document.createElement('div');
+            settingsList.style.cssText = 'display: flex; flex-direction: column; gap: 15px; padding: 15px;';
+            
+            // Claude Haiku Setting
+            const claudeSetting = document.createElement('div');
+            claudeSetting.style.cssText = `
+                border: 2px solid #000;
+                padding: 10px;
+                background: #fff;
+                box-shadow: 2px 2px 0 #000;
+            `;
+            
+            const label = document.createElement('div');
+            label.style.cssText = 'font-weight: bold; margin-bottom: 10px; font-family: monospace;';
+            label.innerText = 'Enable Mistral AI for all clients';
+            
+            const toggleContainer = document.createElement('div');
+            toggleContainer.style.cssText = 'display: flex; gap: 10px; align-items: center;';
+            
+            const toggle = document.createElement('input');
+            toggle.type = 'checkbox';
+            toggle.checked = isEnabled;
+            toggle.style.cssText = 'width: 20px; height: 20px; cursor: pointer;';
+            
+            const status = document.createElement('span');
+            status.innerText = isEnabled ? '✓ Enabled' : '✗ Disabled';
+            status.style.cssText = `font-family: monospace; color: ${isEnabled ? '#00aa00' : '#aa0000'}; font-weight: bold;`;
+            
+            toggle.addEventListener('change', () => {
+                const newState = toggle.checked;
+                localStorage.setItem(configKey, newState.toString());
+                status.innerText = newState ? '✓ Enabled' : '✗ Disabled';
+                status.style.color = newState ? '#00aa00' : '#aa0000';
+                
+                // Show confirmation
+                const confirm = document.createElement('div');
+                confirm.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: #fff;
+                    border: 2px solid #000;
+                    padding: 20px;
+                    z-index: 10000;
+                    box-shadow: 4px 4px 0 #000;
+                    text-align: center;
+                    font-family: monospace;
+                `;
+                confirm.innerHTML = `
+                    <div>Mistral AI ${newState ? 'Enabled' : 'Disabled'}</div>
+                    <div style="margin-top: 10px; font-size: 14px;">Setting saved to all clients</div>
+                `;
+                document.body.appendChild(confirm);
+                setTimeout(() => confirm.remove(), 2000);
+            });
+            
+            toggleContainer.appendChild(toggle);
+            toggleContainer.appendChild(status);
+            
+            claudeSetting.appendChild(label);
+            claudeSetting.appendChild(toggleContainer);
+            
+            settingsList.appendChild(claudeSetting);
+            
+            // API Key Setting
+            const apiKeySetting = document.createElement('div');
+            apiKeySetting.style.cssText = `
+                border: 2px solid #000;
+                padding: 10px;
+                background: #fff;
+                box-shadow: 2px 2px 0 #000;
+            `;
+            
+            const apiLabel = document.createElement('div');
+            apiLabel.style.cssText = 'font-weight: bold; margin-bottom: 10px; font-family: monospace;';
+            apiLabel.innerText = 'Mistral AI API Key';
+            
+            const apiInput = document.createElement('input');
+            apiInput.type = 'password';
+            apiInput.placeholder = 'Enter your Mistral AI API key...';
+            apiInput.value = localStorage.getItem('claude-api-key') || '';
+            apiInput.style.cssText = `
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #000;
+                font-family: monospace;
+                font-size: 12px;
+                box-sizing: border-box;
+            `;
+            
+            const apiSaveBtn = document.createElement('button');
+            apiSaveBtn.innerText = 'Save API Key';
+            apiSaveBtn.style.cssText = `
+                margin-top: 8px;
+                width: 100%;
+                padding: 8px;
+                background: #ffb6c1;
+                border: 2px solid #000;
+                cursor: pointer;
+                font-family: monospace;
+                font-weight: bold;
+            `;
+            apiSaveBtn.onclick = () => {
+                localStorage.setItem('claude-api-key', apiInput.value);
+                const confirm = document.createElement('div');
+                confirm.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: #fff;
+                    border: 2px solid #000;
+                    padding: 20px;
+                    z-index: 10000;
+                    box-shadow: 4px 4px 0 #000;
+                    text-align: center;
+                    font-family: monospace;
+                `;
+                confirm.innerText = 'API Key Saved';
+                document.body.appendChild(confirm);
+                setTimeout(() => confirm.remove(), 1500);
+            };
+            
+            const apiInfo = document.createElement('div');
+            apiInfo.style.cssText = 'font-size: 11px; color: #666; margin-top: 8px;';
+            apiInfo.innerText = 'Get your free API key at console.mistral.ai';
+            
+            apiKeySetting.appendChild(apiLabel);
+            apiKeySetting.appendChild(apiInput);
+            apiKeySetting.appendChild(apiSaveBtn);
+            apiKeySetting.appendChild(apiInfo);
+            
+            settingsList.appendChild(apiKeySetting);
+            
+            // About section
+            const about = document.createElement('div');
+            about.style.cssText = `
+                border: 2px solid #000;
+                padding: 10px;
+                background: #fff;
+                box-shadow: 2px 2px 0 #000;
+                font-family: monospace;
+                font-size: 12px;
+            `;
+            about.innerHTML = `
+                <div><strong>SUPER-H OS v1.0</strong></div>
+                <div>Retro Computing System</div>
+                <div style="margin-top: 10px;">AI Model: Mistral AI Official API</div>
+                <div style="margin-top: 5px; font-size: 11px; color: #666;">Configuration: Local Storage</div>
+            `;
+            
+            settingsList.appendChild(about);
+            
+            content.appendChild(settingsList);
+        }
+    },
+
+    ChatTerminal: {
+        open() {
+            const content = OS.createWindow('chat', 'Mistral Chat Terminal', 500, 400, 'app-terminal');
+            content.style.background = '#222';
+            content.style.display = 'flex';
+            content.style.flexDirection = 'column';
+
+            // Messages display
+            const messagesDiv = document.createElement('div');
+            messagesDiv.style.cssText = `
+                flex: 1;
+                overflow-y: auto;
+                color: #00ff00;
+                padding: 10px;
+                margin-bottom: 10px;
+                border-bottom: 2px solid #444;
+            `;
+
+            // Input area
+            const inputContainer = document.createElement('div');
+            inputContainer.style.cssText = 'display: flex; gap: 5px; align-items: center;';
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Ask Claude...';
+            input.style.cssText = `
+                flex: 1;
+                background: #333;
+                border: 1px solid #555;
+                color: #00ff00;
+                padding: 8px;
+                font-family: monospace;
+                font-size: 14px;
+                outline: none;
+            `;
+
+            const sendBtn = document.createElement('button');
+            sendBtn.innerText = 'Send';
+            sendBtn.style.cssText = `
+                background: #00ff00;
+                color: #000;
+                border: 1px solid #000;
+                padding: 8px 15px;
+                cursor: pointer;
+                font-family: monospace;
+                font-weight: bold;
+            `;
+
+            inputContainer.appendChild(input);
+            inputContainer.appendChild(sendBtn);
+
+            content.appendChild(messagesDiv);
+            content.appendChild(inputContainer);
+
+            // Welcome message
+            const welcome = document.createElement('div');
+            welcome.innerText = 'Mistral AI Chat Terminal (Official API)\nType your question and press Enter or click Send\n';
+            welcome.style.color = '#00aa00';
+            messagesDiv.appendChild(welcome);
+
+            // Send function
+            const sendMessage = async () => {
+                const message = input.value.trim();
+                if (!message) return;
+
+                // Show user message
+                const userMsg = document.createElement('div');
+                userMsg.style.color = '#ffff00';
+                userMsg.innerText = `You: ${message}`;
+                messagesDiv.appendChild(userMsg);
+
+                input.value = '';
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                // Show loading indicator
+                const loadingMsg = document.createElement('div');
+                loadingMsg.style.color = '#888';
+                loadingMsg.innerText = 'Claude: (thinking...)';
+                messagesDiv.appendChild(loadingMsg);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                try {
+                    const apiKey = localStorage.getItem('claude-api-key');
+                    
+                    if (!apiKey) {
+                        loadingMsg.innerText = 'Mistral: Error - No API key configured. Get a free one at console.mistral.ai';
+                        loadingMsg.style.color = '#ff6666';
+                        return;
+                    }
+
+                    const response = await fetch('http://localhost:3000/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            apiKey: apiKey,
+                            message: message
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        // Handle 401 Unauthorized
+                        if (response.status === 401) {
+                            loadingMsg.innerHTML = `Mistral: ⚠ <strong>Invalid API Key</strong><br>Check your key at <a href="https://console.mistral.ai" target="_blank" style="color: #00ff00;">console.mistral.ai</a>`;
+                            loadingMsg.style.color = '#ff6666';
+                            return;
+                        }
+                        
+                        // Handle other errors
+                        const errorMsg = data.error || data.message || 'Unknown error';
+                        loadingMsg.innerText = `Mistral: Error - ${errorMsg}`;
+                        loadingMsg.style.color = '#ff6666';
+                        return;
+                    }
+
+                    const mistralResponse = data.content[0].text;
+                    loadingMsg.innerText = `Mistral: ${mistralResponse}`;
+                    loadingMsg.style.color = '#00ff00';
+
+                } catch (error) {
+                    loadingMsg.innerText = `Mistral: Error - ${error.message}. Is Flask server running on port 3000?`;
+                    loadingMsg.style.color = '#ff6666';
+                    console.error('Chat error:', error);
+                }
+
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            };
+
+            sendBtn.onclick = sendMessage;
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            input.focus();
+        }
+    }
+};
+
+// Start the System
+window.onload = () => OS.init();
+
+</script>
+</body>
+</html>

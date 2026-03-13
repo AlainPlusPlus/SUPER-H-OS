@@ -926,7 +926,7 @@ const Apps = {
             const apiInput = document.createElement('input');
             apiInput.type = 'password';
             apiInput.placeholder = 'Enter your Mistral AI API key...';
-            apiInput.value = localStorage.getItem('claude-api-key') || '';
+            apiInput.value = localStorage.getItem('mistral-api-key') || '';
             apiInput.style.cssText = `
                 width: 100%;
                 padding: 8px;
@@ -949,7 +949,7 @@ const Apps = {
                 font-weight: bold;
             `;
             apiSaveBtn.onclick = () => {
-                localStorage.setItem('claude-api-key', apiInput.value);
+                localStorage.setItem('mistral-api-key', apiInput.value);
                 const confirm = document.createElement('div');
                 confirm.style.cssText = `
                     position: fixed;
@@ -1085,7 +1085,7 @@ const Apps = {
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
                 try {
-                    const apiKey = localStorage.getItem('claude-api-key');
+                    const apiKey = localStorage.getItem('mistral-api-key');
                     
                     if (!apiKey) {
                         loadingMsg.innerText = 'Mistral: Error - No API key configured. Get a free one at console.mistral.ai';

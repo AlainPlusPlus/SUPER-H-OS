@@ -1,5 +1,5 @@
 # Hackathon Simulator Game 2026
-A Hackathon simulator game Vibe coded for a two and a half day hackathon.
+A Hackathon simulator game vibe coded for a two and a half day hackathon.
 
 ## SUPER-H OS
 A Flask server has been implemented for API calls (NEEDS Phyton to run)
@@ -15,3 +15,4 @@ or:
 ```
 python server.py
 ```
+Just double-click on the index.html in order to open the game on your browser.

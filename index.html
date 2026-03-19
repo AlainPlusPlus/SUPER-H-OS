@@ -258,10 +258,10 @@ const OS = {
 
     initializeSettings() {
         // Initialize default settings if not already set
-        if (!localStorage.getItem('claude-haiku-4.5-enabled')) {
-            localStorage.setItem('claude-haiku-4.5-enabled', 'true');
+        if (!localStorage.getItem('mistral-enabled')) {
+            localStorage.setItem('mistral-enabled', 'true');
         }
-        this.claudeHaikuEnabled = localStorage.getItem('claude-haiku-4.5-enabled') === 'true';
+        this.mistralEnabled = localStorage.getItem('mistral-enabled') === 'true';
     },
 
     setupBoot() {
@@ -841,16 +841,16 @@ const Apps = {
             const content = OS.createWindow('settings', 'System Settings', 500, 400);
             content.style.background = '#f0f0f0';
             
-            const configKey = 'claude-haiku-4.5-enabled';
+            const configKey = 'mistral-enabled';
             const isEnabled = localStorage.getItem(configKey) === 'true';
             
             // Settings list
             const settingsList = document.createElement('div');
             settingsList.style.cssText = 'display: flex; flex-direction: column; gap: 15px; padding: 15px;';
             
-            // Claude Haiku Setting
-            const claudeSetting = document.createElement('div');
-            claudeSetting.style.cssText = `
+            // Mistral Setting
+            const mistralSetting = document.createElement('div');
+            mistralSetting.style.cssText = `
                 border: 2px solid #000;
                 padding: 10px;
                 background: #fff;
@@ -905,10 +905,10 @@ const Apps = {
             toggleContainer.appendChild(toggle);
             toggleContainer.appendChild(status);
             
-            claudeSetting.appendChild(label);
-            claudeSetting.appendChild(toggleContainer);
+            mistralSetting.appendChild(label);
+            mistralSetting.appendChild(toggleContainer);
             
-            settingsList.appendChild(claudeSetting);
+            settingsList.appendChild(mistralSetting);
             
             // API Key Setting
             const apiKeySetting = document.createElement('div');

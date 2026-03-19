@@ -14,7 +14,7 @@ _*A Python Flask (Web Server Gateway Interface) server has been implemented in o
 > [!NOTE]
 > _The game can be run/played without the (AI) chat feature and its setup (steps 2,3 and 5) it's not required in this case_
 
-1. Clone the repository
+1. Clone the repository, or download and extract the ZIP archive
 2. Download and install **Python** from [here](https://www.python.org/downloads), or install it via your preferred package manager
 3. Run the following commands in a Linux/macOS terminal (Windows support is untested):
     ```

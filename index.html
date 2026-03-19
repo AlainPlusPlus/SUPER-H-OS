@@ -819,7 +819,7 @@ const Apps = {
 
     TextEditor: {
         open(path) {
-            const content = OS.createWindow('notepad', path || 'Untitled', 400, 330);
+            const content = OS.createWindow('notepad', path || 'Untitled', 400, 300);
             const area = document.createElement('textarea');
             area.style.width = '100%'; area.style.height = 'calc(100% - 30px)';
             area.style.border = 'none'; area.style.resize = 'none'; area.style.padding = '5px';
@@ -838,7 +838,7 @@ const Apps = {
 
     Settings: {
         open() {
-            const content = OS.createWindow('settings', 'System Settings', 500, 400);
+            const content = OS.createWindow('settings', 'System Settings', 500, 330);
             content.style.background = '#f0f0f0';
             
             const configKey = 'mistral-enabled';

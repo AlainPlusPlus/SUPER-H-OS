@@ -15,8 +15,8 @@ _*A Python Flask (Web Server Gateway Interface) server has been implemented in o
 > _The game can be run/played without the (AI) chat feature and its setup (steps 2,3 and 5) it's not required in this case_
 
 1. Clone the repository
-2. Download and install **Python** from [here](https://www.python.org/downloads) or using your preferred package manager
-3. Run (on the Linux or Mac OS terminal. It might also work on Windows but it hasn't been tested):
+2. Download and install **Python** from [here](https://www.python.org/downloads), or install it via your preferred package manager
+3. Run the following commands in a Linux/macOS terminal (Windows support is untested):
     ```
     pip install flask requests
     ```
@@ -24,5 +24,5 @@ _*A Python Flask (Web Server Gateway Interface) server has been implemented in o
     ```
     python server.py
     ```
-4. Open **_index.html_** on your browser and play the game!
-5. Add your Mistral AI API key (which, you can get from [here](https://console.mistral.ai/home?profile_dialog=api-keys) after creating your account) on the game's settings option in order to use the (AI) chat feature
+4. Open the **_index.html_** file on your browser and enjoy the game/simulator!
+5. To use the AI chat feature, enter your Mistral AI API key in the game's settings — obtain the key [here](https://console.mistral.ai/home?profile_dialog=api-keys) after signing up

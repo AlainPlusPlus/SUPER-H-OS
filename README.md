@@ -1,5 +1,5 @@
 # SUPER-H OS 
-A Hackathon simulator web game built (_vibe coded_) during a two and a half day AI hackathon, which includes a multi-purposes AI chat.
+A Hackathon simulator web game built (_vibe coded_) during a two and a half day AI hackathon, which includes a multi-purposes AI chat and a Lua interpreter (using Fengari Lua VM).
 
 ## Requirements
 - **[Web browser](https://en.wikipedia.org/wiki/Web_browser)** (choose your favorite one!)
